@@ -3,7 +3,7 @@ import matplotlib
 import matplotlib.ticker as ticker
 
 
-def set_up_plotting(width,height):
+def set_up_plotting(width,height,title):
 
     plt.style.use('seaborn-white')
     plt.rcParams["xtick.labelsize"] = 14
@@ -14,7 +14,7 @@ def set_up_plotting(width,height):
     plt.rcParams['legend.facecolor'] = 'white'
     plt.rcParams['axes.linewidth'] = 0
     
-    fig = plt.figure(figsize=(width,height))
+    fig = plt.figure(figsize=(width,height), num = title)
     ax = fig.add_subplot(111)
 
     ax.xaxis.set_tick_params(which = 'major',length = 10, width = 2)
