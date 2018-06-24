@@ -154,18 +154,20 @@ def return_zeros(a,function_setup):
     denominator_roots = find_real_roots('denom',a,function_setup)
     
     for every_root in numerator_roots:
-        if every_root in denominator_roots:
+        if (every_root in list(find_multiplicities('num',a,function_setup).keys())) & \
+            (every_root in denominator_roots):
             func_remov_disc = np.append(func_remov_disc, every_root)
+        elif (every_root not in list(find_multiplicities('num',a,function_setup).keys())) & \
+        (every_root not in list(find_multiplicities('denom',a,function_setup).keys())):
+            func_remov_disc = np.append(func_remov_disc, every_root)
+        elif every_root in list(find_multiplicities('denom',a,function_setup).keys()):
+            continue
         else:
             func_zeros = np.append(func_zeros, every_root)
     
     for every_root in denominator_roots:
-        if every_root not in numerator_roots:
-            func_inf_disc = np.append(func_inf_disc, every_root)
-        else:
-            
-            func_limits_remov = np.append(func_limits_remov,limits_at_a(a,every_root,function_setup))
-            
+        if every_root in list(find_multiplicities('denom',a,function_setup).keys()):
+            func_inf_disc = np.append(func_inf_disc,every_root)
     
     return (func_zeros, func_remov_disc, func_inf_disc)
 
