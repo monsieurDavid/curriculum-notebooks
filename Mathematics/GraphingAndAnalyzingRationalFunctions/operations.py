@@ -1,4 +1,6 @@
 import sympy as sym
+from sympy import diff
+
 from sympy.utilities.lambdify import lambdify, implemented_function
 from sympy import Function
 from plotting_routines import *
@@ -6,25 +8,43 @@ from IPython.display import clear_output
 import ipywidgets
 from ipywidgets import interact, interactive, fixed, interact_manual
 import numpy as np
+from functools import partial, update_wrapper
 from collections import OrderedDict
    
 def variables_setup():
     x = sym.symbols('x')
-    a = sym.symbols('a',real=True,nonpositive = True)
+    a = sym.symbols('a',real=True,positive = True)
     return x,a
 
-def sign(function_setup,x_value,a_value):
+def derivative_setup(x_value,a_value,function_setup):
+    x,a = variables_setup()
+    num, denom = function_setup(x_value,a_value)[1], function_setup(x_value,a_value)[2]
+    func = sym.simplify(diff(num/denom,x))
+    return (func, sym.fraction(func)[0], sym.fraction(func)[1])
 
-    if function_setup(x_value,a_value)[0] > 0:
+def sign(function_setup,x_value,a_value):
+    
+    x,a = variables_setup()
+    
+    lam_f = lambdify((x,a), function_setup(x,a)[0])
+
+    if lam_f(x,a_value).evalf(subs={x: x_value}).is_positive:
         return 1
-    elif function_setup(x_value,a_value)[0] < 0:
+    elif lam_f(x,a_value).evalf(subs={x: x_value}).is_negative:
         return -1
+    else:
+        return 0
     
 
 def simplified_function(function_setup,a_value):
+    
     x,a = variables_setup()
-    num = function_setup(x,a_value)[1]
-    denom = function_setup(x,a_value)[2]
+  
+    lam_f_num = lambdify((x,a), function_setup(x,a)[1])
+    lam_f_denom = lambdify((x,a), function_setup(x,a)[2])
+    
+    num = lam_f_num(x,a_value)
+    denom = lam_f_denom(x,a_value)
     
     return sym.simplify(factorize(num,x)/factorize(denom,x))
 
@@ -49,14 +69,14 @@ def find_real_roots(poly,a_value,function_setup):
     x,a = variables_setup()
 
     if poly == 'num':
-        f = implemented_function(Function('f'), lambda a: function_setup(x,a)[1])
-    elif poly == 'denom':
-        f = implemented_function(Function('f'), lambda a: function_setup(x,a)[2])
         
-    lam_f = lambdify(a, f(a))
-    
-    
-    poly_at_a = lam_f(a_value)
+        lam_f = lambdify((x,a), function_setup(x,a)[1])
+        
+    elif poly == 'denom':
+        lam_f = lambdify((x,a), function_setup(x,a)[2])
+        
+        
+    poly_at_a = lam_f(x,a_value)
     all_local_roots = sym.solve(poly_at_a,x)
     real_roots = []
     for every_root in all_local_roots:
@@ -120,6 +140,26 @@ def true_answers(P,Q,function_setup,a_value):
     
     for each_root in root_multiplicities.keys():
         true_answers['multiplicity'][each_root] = root_multiplicities[each_root]
+        
+    true_answers['extrema'] = {}
+        
+    derivative = partial(derivative_setup, function_setup = function_setup)
+    der_zeros = list(find_multiplicities('num',a,derivative).keys())
+    
+    f = implemented_function(Function('f'), lambda x,a: diff(derivative(x,a)[0],x))
+        
+    lam_f = lambdify((x,a), f(x,a))
+    
+    
+    for each_extremum in der_zeros:
+        second_derivative_value = lam_f(x, a_value).evalf(subs = {x: each_extremum})
+        if second_derivative_value.is_positive:
+            true_answers['extrema'][each_extremum] = 1
+        elif second_derivative_value.is_negative:
+            true_answers['extrema'][each_extremum] = -1
+        else:
+            true_answers['extrema'][each_extremum] = 0
+ 
 
     return true_answers
 
