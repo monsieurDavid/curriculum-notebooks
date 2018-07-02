@@ -46,7 +46,9 @@ def simplified_function(function_setup,a_value):
     num = lam_f_num(x,a_value)
     denom = lam_f_denom(x,a_value)
     
-    return sym.simplify(factorize(num,x)/factorize(denom,x))
+    func = sym.simplify(factorize(num,x)/factorize(denom,x))
+    
+    return (func, sym.fraction(func)[0], sym.fraction(func)[1])
 
 def factorize(poly,x):
     roots = sym.solve(poly,x)
@@ -89,16 +91,19 @@ def find_multiplicities(poly,a_value,function_setup):
     
     if poly == 'num':
         
-        multiplicity_full_dict = sym.roots(sym.fraction(simplified_function(function_setup,a_value))[0],x)
+        multiplicity_full_dict = sym.roots(simplified_function(function_setup,a_value)[1],x)
         
     elif poly == 'denom':
-        multiplicity_full_dict = sym.roots(sym.fraction(simplified_function(function_setup, a_value))[1],x)
+        multiplicity_full_dict = sym.roots(simplified_function(function_setup,a_value)[2],x)
         
     multiplicity_real_dict = {}
         
     for each_root in multiplicity_full_dict.keys():
-        if sym.im(each_root) == 0:
-            multiplicity_real_dict[each_root] = multiplicity_full_dict[each_root]
+        simplified_root = each_root.conjugate().conjugate().simplify().trigsimp()
+        
+        if sym.im(simplified_root) == 0:
+            
+            multiplicity_real_dict[float(simplified_root)] = multiplicity_full_dict[each_root]
     
     return multiplicity_real_dict
         
