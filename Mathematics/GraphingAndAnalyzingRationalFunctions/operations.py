@@ -1,15 +1,18 @@
 import sympy as sym
 from sympy import diff
-
 from sympy.utilities.lambdify import lambdify, implemented_function
 from sympy import Function
+import numpy as np
+
 from plotting_routines import *
 from IPython.display import clear_output
 import ipywidgets
 from ipywidgets import interact, interactive, fixed, interact_manual
-import numpy as np
+
 from functools import partial, update_wrapper
 from collections import OrderedDict
+
+from ipywidgets import Layout, Output
    
 def variables_setup():
     x = sym.symbols('x')
@@ -118,8 +121,8 @@ def true_answers(P,Q,function_setup,a_value):
     else:
         true_answers['factorization'] = 'Yes'
 
-    disc_option_a = 'No cancellation occurs; therefore, there is an infinite discontinuity at the root(s) of the denominator.'
-    disc_option_b = 'Some factors got cancelled, and the discontinuity is removable!'
+    disc_option_a = 'No cancellation occurs; therefore, we have vertical asymptotes at all of the denominator roots.'
+    disc_option_b = 'Some factors got cancelled, and the corresponding discontinuities are removable!'
     
     list_num_roots = []
     list_denom_roots = []
@@ -132,10 +135,22 @@ def true_answers(P,Q,function_setup,a_value):
     
 
     if bool(set(list_num_roots) & set(list_denom_roots)) == False:
-        true_answers['discontinuity_type'] = disc_option_a
+        true_answers['general_discontinuity_type'] = disc_option_a
     else:
-        true_answers['discontinuity_type'] = disc_option_b
+        true_answers['general_discontinuity_type'] = disc_option_b
         
+      
+    true_answers['specific_discontinuity_type'] = {}
+    
+    for each_remov_disc in return_zeros(a_value,function_setup)[1]:
+        true_answers['specific_discontinuity_type'][each_remov_disc] = 'removable discontinuity'
+    
+    for each_inf_disc in return_zeros(a_value, function_setup)[2]:
+        true_answers['specific_discontinuity_type'][each_inf_disc] = 'vertical asymptote'
+        
+    
+        
+   
     num_root_multiplicities = find_multiplicities('num',a_value,function_setup)
     denom_root_multiplicities = find_multiplicities('denom',a_value,function_setup)
     
@@ -146,25 +161,7 @@ def true_answers(P,Q,function_setup,a_value):
     for each_root in root_multiplicities.keys():
         true_answers['multiplicity'][each_root] = root_multiplicities[each_root]
         
-    true_answers['extrema'] = {}
-        
-    derivative = partial(derivative_setup, function_setup = function_setup)
-    der_zeros = list(find_multiplicities('num',a,derivative).keys())
     
-    f = implemented_function(Function('f'), lambda x,a: diff(derivative(x,a)[0],x))
-        
-    lam_f = lambdify((x,a), f(x,a))
-    
-    
-    for each_extremum in der_zeros:
-        second_derivative_value = lam_f(x, a_value).evalf(subs = {x: each_extremum})
-        if second_derivative_value.is_positive:
-            true_answers['extrema'][each_extremum] = 1
-        elif second_derivative_value.is_negative:
-            true_answers['extrema'][each_extremum] = -1
-        else:
-            true_answers['extrema'][each_extremum] = 0
- 
 
     return true_answers
 
@@ -215,6 +212,46 @@ def return_zeros(a,function_setup):
             func_inf_disc = np.append(func_inf_disc,every_root)
     
     return (func_zeros, func_remov_disc, func_inf_disc)
+
+
+def when_we_click_check_button(change, function_setup, a_value, widget_dict, feedback_dict, test_values, problem_type, 
+                               check_button, try_again_button, output):
+    
+    x,a = variables_setup()
+    P,Q = function_setup(x,a)[1], function_setup(x,a)[2]
+    
+    proper_type = type(true_answers(P,Q,function_setup,a_value)[problem_type][test_values[0]])
+    
+    for each_tv in test_values:
+        
+        if proper_type(widget_dict[each_tv].value) == true_answers(P,Q,function_setup,a_value)[problem_type][each_tv]:
+            with output:
+                feedback_dict[each_tv].layout = Layout(border = 'solid 2px #31aa6e')
+                feedback_dict[each_tv].value = 'Correct!'
+                
+            
+        else:
+            with output:
+                feedback_dict[each_tv].layout = Layout(border = 'solid 2px #f95757')
+                feedback_dict[each_tv].value = 'Wrong!'
+                
+    check_button.disabled = True
+    try_again_button.disabled = False
+    
+            
+def when_we_click_try_again_button(change, widget_dict, feedback_dict, 
+                                   test_values, check_button, try_again_button, output):
+    with output:
+        clear_output()
+    
+    for each_tv in test_values:
+        feedback_dict[each_tv].layout = Layout(border = 'solid 1px gray')
+        feedback_dict[each_tv].value = ' '
+        
+    check_button.disabled = False
+    try_again_button.disabled = True
+    
+    
 
     
 
