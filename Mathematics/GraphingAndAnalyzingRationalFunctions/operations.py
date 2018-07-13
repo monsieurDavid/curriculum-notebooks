@@ -82,33 +82,69 @@ def find_real_roots(poly,a_value,function_setup):
         
         
     poly_at_a = lam_f(x,a_value)
-    all_local_roots = sym.solve(poly_at_a,x)
+    coeffs = sym.Poly(poly_at_a,x).all_coeffs()
+    
+    all_local_roots = np.roots(coeffs)
+    
     real_roots = []
+    
     for every_root in all_local_roots:
-        if sym.im(every_root) == 0:
-            real_roots = np.append(real_roots,every_root)
-    return real_roots
-
-def find_multiplicities(poly,a_value,function_setup):
-    x = variables_setup()[0]
-    
-    if poly == 'num':
-        
-        multiplicity_full_dict = sym.roots(simplified_function(function_setup,a_value)[1],x)
-        
-    elif poly == 'denom':
-        multiplicity_full_dict = sym.roots(simplified_function(function_setup,a_value)[2],x)
-        
-    multiplicity_real_dict = {}
-        
-    for each_root in multiplicity_full_dict.keys():
-        simplified_root = each_root.conjugate().conjugate().simplify().trigsimp()
-        
-        if sym.im(simplified_root) == 0:
+        if np.imag(every_root) == 0:
+            real_roots = np.append(real_roots,np.real(every_root))
             
-            multiplicity_real_dict[float(simplified_root)] = multiplicity_full_dict[each_root]
+    return np.round(real_roots,4)
+
+def find_multiplicities(poly,a_value,function_setup,numerator,denominator):
+    x,a = variables_setup()
     
-    return multiplicity_real_dict
+    multiplicity_full_dict = {'num':{},'denom':{}}
+    multiplicity_real_dict = {'num':{},'denom':{}}
+        
+    lam_f_num = lambdify((x,a), function_setup(x,a)[1])
+    lam_f_denom = lambdify((x,a), function_setup(x,a)[2])
+    
+    num_at_a = lam_f_num(x,a_value)
+    denom_at_a = lam_f_denom(x,a_value)
+        
+    num_coeffs = sym.Poly(num_at_a,x).all_coeffs()
+    denom_coeffs = sym.Poly(denom_at_a,x).all_coeffs()
+    
+    all_num_roots = list(np.round(np.roots(num_coeffs),4))
+    unique_num_roots = list(set(all_num_roots))
+    
+    all_denom_roots = list(np.round(np.roots(denom_coeffs),4))
+    unique_denom_roots = list(set(all_denom_roots))
+    
+    unique_roots = list(set(np.append(unique_num_roots,unique_denom_roots)))
+        
+ 
+    for each_unique_root in unique_roots:
+        diff = all_num_roots.count(each_unique_root) - all_denom_roots.count(each_unique_root)
+        if diff > 0:
+            multiplicity_full_dict['num'][each_unique_root] = diff
+        elif diff < 0:
+            multiplicity_full_dict['denom'][each_unique_root] = np.abs(diff)
+            
+    all_keys = np.append(list(multiplicity_full_dict['num'].keys()),list(multiplicity_full_dict['denom'].keys()))
+   
+    for each_root in all_keys:
+        
+        #for symbolic roots do:
+        #simplified_root = each_root.conjugate().conjugate().simplify().trigsimp()
+        #(skip for the roots found numerically with numpy)
+        
+        if np.imag(each_root) == 0:
+            
+            if each_root in list(multiplicity_full_dict['num'].keys()):
+            
+                multiplicity_real_dict['num'][np.real(each_root)] = multiplicity_full_dict['num'][each_root]
+            
+            elif each_root in list(multiplicity_full_dict['denom'].keys()):
+                
+                multiplicity_real_dict['denom'][np.real(each_root)] = multiplicity_full_dict['denom'][each_root]
+                
+    
+    return multiplicity_real_dict,num_at_a,denom_at_a
         
       
 
@@ -151,8 +187,8 @@ def true_answers(P,Q,function_setup,a_value):
     
         
    
-    num_root_multiplicities = find_multiplicities('num',a_value,function_setup)
-    denom_root_multiplicities = find_multiplicities('denom',a_value,function_setup)
+    num_root_multiplicities = find_multiplicities('num',a_value,function_setup,P,Q)[0]['num']
+    denom_root_multiplicities = find_multiplicities('denom',a_value,function_setup,P,Q)[0]['denom']
     
     root_multiplicities = {**num_root_multiplicities, **denom_root_multiplicities}
     
@@ -184,31 +220,36 @@ def return_zeros(a,function_setup):
     
     x = variables_setup()[0]
 
-    num,denom = function_setup(x,a)[1], function_setup(x,a)[2]
-
+    numerator,denominator = function_setup(x,a)[1], function_setup(x,a)[2]
     
     func_zeros = []
     func_remov_disc = []
     func_inf_disc = []
     func_limits_remov = []
     
-    numerator_roots = find_real_roots('num',a,function_setup)
-    denominator_roots = find_real_roots('denom',a,function_setup)
+    multiplicity_data = find_multiplicities('num',a,function_setup, numerator,denominator)
+    
+    numerator_roots = np.round(np.real(np.roots(sym.Poly(multiplicity_data[1],x).all_coeffs())),4)
+    denominator_roots = np.round(np.real(np.roots(sym.Poly(multiplicity_data[2],x).all_coeffs())),4)
+    
+    multiplicity_list_num = list(multiplicity_data[0]['num'].keys())
+    multiplicity_list_denom = list(multiplicity_data[0]['denom'].keys())
     
     for every_root in numerator_roots:
-        if (every_root in list(find_multiplicities('num',a,function_setup).keys())) & \
-            (every_root in denominator_roots):
+        
+        if (every_root in multiplicity_list_num) & (every_root in denominator_roots):
             func_remov_disc = np.append(func_remov_disc, every_root)
-        elif (every_root not in list(find_multiplicities('num',a,function_setup).keys())) & \
-        (every_root not in list(find_multiplicities('denom',a,function_setup).keys())):
+            
+        elif (every_root not in multiplicity_list_num) & (every_root not in multiplicity_list_denom):
             func_remov_disc = np.append(func_remov_disc, every_root)
-        elif every_root in list(find_multiplicities('denom',a,function_setup).keys()):
+            
+        elif every_root in multiplicity_list_denom:
             continue
         else:
             func_zeros = np.append(func_zeros, every_root)
     
     for every_root in denominator_roots:
-        if every_root in list(find_multiplicities('denom',a,function_setup).keys()):
+        if every_root in multiplicity_list_denom:
             func_inf_disc = np.append(func_inf_disc,every_root)
     
     return (func_zeros, func_remov_disc, func_inf_disc)
@@ -226,14 +267,12 @@ def when_we_click_check_button(change, function_setup, a_value, widget_dict, fee
         
         if proper_type(widget_dict[each_tv].value) == true_answers(P,Q,function_setup,a_value)[problem_type][each_tv]:
             with output:
-                feedback_dict[each_tv].layout = Layout(border = 'solid 2px #31aa6e')
-                feedback_dict[each_tv].value = 'Correct!'
+                feedback_dict[each_tv].value += 'Correct!'
                 
             
         else:
             with output:
-                feedback_dict[each_tv].layout = Layout(border = 'solid 2px #f95757')
-                feedback_dict[each_tv].value = 'Wrong!'
+                feedback_dict[each_tv].value += 'Wrong!'
                 
     check_button.disabled = True
     try_again_button.disabled = False
@@ -245,8 +284,7 @@ def when_we_click_try_again_button(change, widget_dict, feedback_dict,
         clear_output()
     
     for each_tv in test_values:
-        feedback_dict[each_tv].layout = Layout(border = 'solid 1px gray')
-        feedback_dict[each_tv].value = ' '
+        feedback_dict[each_tv].value = 'Feedback: '
         
     check_button.disabled = False
     try_again_button.disabled = True
