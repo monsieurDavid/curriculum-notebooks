@@ -161,6 +161,10 @@ class WeatherMap(MapEvents):
 #                 'end': (end_days, end_month_range)}
    
     
+    def weather_data(self, station_id, year=None, month=None):
+        station_id = get_station_attr(self.stations[station_id], 'station_id')
+        return self.get_table(station_id, year, month)
+    
     def get_table(self, stationID, year=None, month=None):
         url = 'http://climate.weather.gc.ca/climate_data/daily_data_e.html?StationID={}'.format(stationID)
         if year is not None and month is not None:
@@ -168,7 +172,7 @@ class WeatherMap(MapEvents):
         EMPTY = '\xa0'
         MISSING = '<a '
         DATE_RANGE_RE = re.compile(r'var maxMin ?= ?\[([\'\"].*[\'\"]).*\]')
-        
+        self.Log = url
         site = requests.get(url)
         content = site.content
         soup = bs(content, 'lxml')
