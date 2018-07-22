@@ -52,23 +52,36 @@ class WeatherMap(MapEvents):
         self.popups = [None] * self.num_of_stations
         self.load_data()
         self.init_kdTree()
-        self.open_table_comm('_table_')
-        self.table = HTML_DISPLAY(HTML_TABLE)
+        #self.open_table_comm('_table_')
+  
         #self.table.hold_sync
-        self.open_comm('_button_')
+        #self.open_comm('_button_')
+        self.table_comm = Comm(target_name='_table_', data={'foo': 1})
+        get_ipython().kernel.comm_manager.register_target('_table_callback_', self.table_callback_comm)
+        self.table = HTML_DISPLAY(HTML_TABLE)
         #self.map.on_interaction(self.callback)
         
-        
+    
     def open_comm(self, label):
         get_ipython().kernel.comm_manager.register_target(label, self.comm_handler)
     
-    def open_table_comm(self, label):
-        get_ipython().kernel.comm_manager.register_target(label, self.table_comm)
-    
-    def table_comm(self, comm, msg):
+#     def open_table_comm(self, label):
+#         self.open_table_comm = get_ipython().kernel.comm_manager.register_target(label, self.table_comm)
+        
+    def table_callback_comm(self, comm, msg):
         @comm.on_msg
         def _recv(msg):
-            comm.send(self.table_data)
+            #self.comm = msg
+            self.update_table(msg)
+            self.table_comm.send(self.table_data)
+    
+#     def table_comm(self, comm, msg):
+#         @comm.on_msg
+#         def _recv(msg):
+#             self.comm = msg
+#             self.update_table()
+#             self.open_table_comm.send(self.table_data);
+#             #comm.send(self.table_data)
     
     def comm_handler(self, comm, msg):
         @comm.on_msg
@@ -77,7 +90,7 @@ class WeatherMap(MapEvents):
             self.update_table()
             
     # Converts a month by string, into the index that it occures in order
-    # eg. 'january' => 0, 'May' => 5
+    # eg. 'january' => 0, 'May' => 4
     def month_to_index(self, month):
         months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 
                   'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
@@ -148,8 +161,10 @@ class WeatherMap(MapEvents):
 #                 'end': (end_days, end_month_range)}
    
     
-    def get_table(self, stationID):
+    def get_table(self, stationID, year=None, month=None):
         url = 'http://climate.weather.gc.ca/climate_data/daily_data_e.html?StationID={}'.format(stationID)
+        if year is not None and month is not None:
+            url += '&Year={}&Month={}'.format(year, month)
         EMPTY = '\xa0'
         MISSING = '<a '
         DATE_RANGE_RE = re.compile(r'var maxMin ?= ?\[([\'\"].*[\'\"]).*\]')
@@ -203,7 +218,7 @@ class WeatherMap(MapEvents):
             table['temp'].append(meanTemp)
             table['rain'].append(totalRain)
             table['wind'].append(windSpeed)
-            
+
         # Try to get a tuple representing the last day that whether was recorded
         # in the form ((int)day, (int)month, (int)year)
         try:
@@ -307,10 +322,10 @@ class WeatherMap(MapEvents):
 
     
     # Updates the information in the display table using the comm data from our html
-    def update_table(self):
-        if self.comm is None:
-            return
-        index = int(self.comm['content']['data']['index'])
+    def update_table(self, msg):
+#         if self.comm is None:
+#             return
+        index = int(msg['content']['data']['index'])
         name = get_station_attr(self.stations[index], 'name').title()
         lat = get_station_attr(self.stations[index], 'lat')[:6]
         lon = get_station_attr(self.stations[index], 'lon')[:6]
@@ -318,7 +333,9 @@ class WeatherMap(MapEvents):
         #self.table_data = {'table': name}        
         self.index = stationId
         try:
-            self.table_data = {'table': self.get_table(stationId), 'id': (self.table_data['id']+1)%100}
+            year = int(msg['content']['data']['year'])
+            month = int(msg['content']['data']['month'])
+            self.table_data = {'table': self.get_table(stationId, year=year, month=month), 'id': index}
         except Exception as e:
-            self.foundSomething = e
+            self.table_data = {'table': self.get_table(stationId), 'id': index}
         #self.table.value = (HTML_TABLE % (name, lat, lon))
