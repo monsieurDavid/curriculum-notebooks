@@ -1,7 +1,7 @@
 var img = [];
 var paths = ["images/coal.jpg","images/nat-gas.jpg","images/oil.jpeg","images/biofuel.jpg","images/geothermal.jpg","images/nuclear.jpg","images/solar.jpg"];
+var headers = ["Coal","Natural Gas","Oil","Biofuel","Geothermal","Nuclear","Solar"]
 
-// textFont("Helvetica");
 // text("Attention, please.", 50, 200);
 var button;
 var i;
@@ -21,6 +21,12 @@ function moveIndx() {
     }
 }
 function draw() {
+    textFont("Helvetica");
+    fill(255);
+    noStroke();
     background(0);
     image(img[i],0,0);
+    textSize(36)
+    textStyle(BOLD)
+    text(headers[i],7,405);
 }
