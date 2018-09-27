@@ -59,14 +59,48 @@
       }
     });
 
-    // show number of correct answers out of total
-    resultsContainer.innerHTML = `You got ${numCorrect} correct out of ${myQuestions.length}!`;
+    if (myQuestions.length % numCorrect === 0) {
+        // show number of correct answers out of total
+        resultsContainer.innerHTML = `Great! You got ${numCorrect} correct out of ${myQuestions.length}.`;
+    } else if (numCorrect === 0) {
+        resultsContainer.innerHTML = `Give it another try!`;
+    } else {
+        resultsContainer.innerHTML = `Well done! Keep it up to get them all.`;
+    };
   }
 
   const quizContainer = document.getElementById("quiz");
   const resultsContainer = document.getElementById("results");
   const submitButton = document.getElementById("submit");
   const myQuestions = [
+    {
+      question: "In the double convex lens diagram, what happens when the object is far from the lens?",
+      answers: {
+          a: "The real image gets flipped.",
+          b: "The real image gets bigger.",
+          c: "The real image gets smaller.",
+          d: "The focal length gets shorter."
+      },
+      correctAnswer: "c"
+    },
+    {
+      question: "In the double convex lens diagram, what happens when the object is close to the lens?",
+      answers: {
+          a: "The real image gets flipped.",
+          b: "The real image gets bigger.",
+          c: "The real image gets smaller.",
+          d: "The focal length gets shorter."
+      },
+      correctAnswer: "b"
+    },
+    {
+      question: "Try moving the focal length (the point labeled F) to the other side of the lens. Is the real image upside down anymore?",
+      answers: {
+          a: "Yes, it is still upside down.",
+          b: "No, it got flipped."
+      },
+      correctAnswer: "b"
+    },
     {
       question: "What part of the eye converts light energy to electrical energy?",
       answers: {
