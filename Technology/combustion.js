@@ -11,8 +11,8 @@ function setup() {
 
 
 function draw() {
-	var v = createVector(1.5,0)
-	var v2 = createVector(-1.5,0)
+	var v = createVector(1.8,0)
+	var v2 = createVector(-1.8,0)
 	var v3 = createVector(1.0,-2.0)
 	var v4 = createVector(-1.0,-2.0)
     var v0 = createVector(0,0)
