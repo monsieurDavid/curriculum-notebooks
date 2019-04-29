@@ -18,15 +18,13 @@ for path in paths:
     except:
         continue
 
-wFile = open("data.json", "w+")
+wFile = open("./websiteConcept/data.json", "w+")
 wFile.write("{")
 for i, x in enumerate(notebooks):
     index = '"' + str(i) + '" : '
-    # print(index)
     wFile.write(index)
     wFile.write(x)
     if i != len(notebooks) - 1 :
         wFile.write(",")
 wFile.write("}")
 wFile.close()
-# print(myFile.read())
